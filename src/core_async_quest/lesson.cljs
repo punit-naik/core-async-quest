@@ -32,22 +32,54 @@
    :check {:question "When may the producer continue past an unbuffered channel handoff?" :answers [{:id :buffer :label "As soon as a value is placed in the channel"} {:id :taker :label "When a consumer takes the value"} {:id :clock :label "After one scheduler tick"}] :correct :taker :explanation "Exactly. With no buffer, the put and take complete together; this meeting is the rendezvous."}})
 
 
+(def chapter-two
+  {:number "02"
+   :title "Go, then park"
+   :concept "A `go` block describes a lightweight process. When `<!` or `>!` cannot proceed, that process parks and resumes later instead of holding up a thread."
+   :overview "Chapter 1 showed a channel handoff. Now we give the waiting work a home: a `go` block. This makes a sequence of asynchronous steps read from top to bottom while the runtime handles the pause and resume."
+   :foundations [{:title "`go` blocks" :body "A `go` block starts a lightweight process. Use it for coordination around channels, not for long CPU work or ordinary blocking I/O."}
+                 {:title "`<!` takes" :body "Inside `go`, `<!` asks for the next value from a channel. If no value is ready, the go process parks at that line."}
+                 {:title "`>!` puts" :body "Inside `go`, `>!` hands a value to a channel. It parks until that handoff can complete when the channel has no capacity or taker."}]
+   :applications [{:title "Load, shape, then render" :situation "A screen needs a profile from one asynchronous source before it can prepare a view model." :flow "A go process takes the profile with `<!`, selects the needed fields, then puts the view model with `>!`." :benefit "The dependent steps stay in one readable sequence instead of being split across callback boundaries."}
+                  {:title "Wait for a save result" :situation "A form submits work and must react when the result eventually arrives." :flow "The coordination process parks on a result channel, then emits either a success or error message." :benefit "Waiting is explicit and does not require a shared `loading?` flag to control every branch."}
+                  {:title "Stage a small workflow" :situation "A task needs one input before it can begin the next channel-based step." :flow "Each `<!` / `>!` marks a real handoff; the process resumes exactly where it parked." :benefit "The code exposes the order of dependency without blocking a thread for each paused task."}]
+   :events [{:at 0 :kind :process :label "The `go` process starts and asks for a profile with `<!`."} {:at 1 :kind :channel :label "No profile is ready, so the go process parks at the take."} {:at 2 :kind :process :label "Other work can continue while this process is parked."} {:at 3 :kind :channel :label "A profile arrives; the process resumes with that value."} {:at 4 :kind :success :label "It prepares a view model and hands it off with `>!`."}]
+   :goal "Advance the trace and notice the difference between a parked go process and a blocked thread."
+   :code "(go\n  (let [profile (<! profile-ch)\n        view    (select-keys profile [:name :role])]\n    (>! view-ch view)))"
+   :caution "Parking only happens at core.async channel operations inside `go`. A slow calculation or blocking call you write inside a go block still blocks."
+   :next "Next, buffers change the timing of a handoff and let us talk precisely about throughput and back-pressure."
+   :check {:question "What happens when `<!` has no value available inside a `go` block?" :answers [{:id :park :label "The go process parks and resumes when a value is available"} {:id :thread :label "It blocks the underlying thread until a value arrives"} {:id :skip :label "It skips the take and returns nil"}] :correct :park :explanation "Right. The go process pauses at the channel operation; the runtime can use the underlying execution resource for other work."}})
+
+
+(def chapters [chapter chapter-two])
+
+
+(defn chapter-by-number
+  [number]
+  (or (some #(when (= number (:number %)) %) chapters) chapter))
+
+
+(defn events-for
+  [chapter]
+  (or (:events chapter) events))
+
+
 (def initial-db {:chapter chapter :step 0 :answer nil :attempts 0})
 
 
 (defn last-step
-  []
-  (dec (count events)))
+  ([] (dec (count events)))
+  ([db] (dec (count (events-for (:chapter db))))))
 
 
 (defn complete?
   [db]
-  (= (:step db) (last-step)))
+  (= (:step db) (last-step db)))
 
 
 (defn advance
   [db]
-  (update db :step #(min (inc %) (last-step))))
+  (update db :step #(min (inc %) (last-step db))))
 
 
 (defn reset
@@ -58,6 +90,11 @@
 (defn answer
   [db answer-id]
   (update (assoc db :answer answer-id) :attempts inc))
+
+
+(defn select-chapter
+  [_ number]
+  {:chapter (chapter-by-number number) :step 0 :answer nil :attempts 0})
 
 
 (defn correct-answer?

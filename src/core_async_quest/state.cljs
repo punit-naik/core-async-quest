@@ -28,6 +28,7 @@
 (rf/reg-event-db :advance (fn [db _] (advance-db db)))
 (rf/reg-event-db :reset-lesson (fn [db _] (reset-db db)))
 (rf/reg-event-db :answer (fn [db [_ answer-id]] (answer-db db answer-id)))
+(rf/reg-event-db :select-chapter (fn [db [_ number]] (lesson/select-chapter db number)))
 (rf/reg-sub :chapter (fn [db _] (:chapter db)))
 (rf/reg-sub :step (fn [db _] (:step db)))
 (rf/reg-sub :answer (fn [db _] (:answer db)))

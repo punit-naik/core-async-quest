@@ -50,3 +50,15 @@
   (rf/dispatch-sync [:answer :taker])
   (rf/dispatch-sync [:reset-lesson])
   (is (= lesson/initial-db @rfdb/app-db)))
+
+
+(deftest chapter-selection-resets-and-uses-chapter-two-events
+  (fresh-app!)
+  (rf/dispatch-sync [:advance])
+  (rf/dispatch-sync [:select-chapter "02"])
+  (is (= "02" (get-in @rfdb/app-db [:chapter :number])))
+  (is (= 0 (:step @rfdb/app-db)))
+  (dotimes [_ 4] (rf/dispatch-sync [:advance]))
+  (is (lesson/complete? @rfdb/app-db))
+  (rf/dispatch-sync [:answer :park])
+  (is (lesson/correct-answer? @rfdb/app-db)))

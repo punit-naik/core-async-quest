@@ -1,4 +1,4 @@
-(defproject org.clojars.punit-naik/core-async-quest "0.2.0"
+(defproject org.clojars.punit-naik/core-async-quest "0.3.0"
   :description "A visual, game-like Clojure core.async learning lab"
   :url "https://punit-naik.github.io/core-async-quest/"
   :license {:name "EPL-2.0"
@@ -19,8 +19,8 @@
                 :output-to "resources/public/js/compiled/app.js"
                 :output-dir "resources/public/js/compiled/out"
                 :asset-path "js/compiled/out"
-                :optimizations :none
-                :source-map true
+                :optimizations :advanced
+                :pretty-print true
                 :npm-deps {"react" "18.3.1"
                            "react-dom" "18.3.1"
                            "@xyflow/react" "12.11.5"

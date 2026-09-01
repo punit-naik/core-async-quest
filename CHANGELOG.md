@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-09-01
+
+### Added
+
+- Chapter 2, “Go, then park,” covering `go`, `<!`, `>!`, parking,
+  resumption, and the limits of go-block coordination.
+- Top chapter controls and a bottom previous/next pager with the current
+  chapter number.
+- A versioned pre-commit hook that runs cljstyle from the Leiningen `+dev`
+  profile.
+
 ## [0.2.0] - 2026-09-01
 
 ### Added

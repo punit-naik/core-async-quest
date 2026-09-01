@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+lein with-profile +dev trampoline run -m cljstyle.main fix
+
+# Include any formatting changes made to already tracked files in this commit.
+git add --update

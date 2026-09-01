@@ -80,24 +80,94 @@
     [:p {:style (:copy styles)} (:next chapter)]]])
 
 
+(defn chapter-navigation
+  [current]
+  [:nav {:style {:display "flex" :gap ".5rem" :margin "0 0 2rem"}}
+   (for [{:keys [number title]} lesson/chapters]
+     ^{:key number}
+     [:button {:style (merge-style (:answer styles) (when (= number (:number current)) {:border-color "#67e8f9" :color "#67e8f9"}))
+               :on-click #(rf/dispatch [:select-chapter number])}
+      (str "Chapter " number " · " title)])])
+
+
+(defn chapter-pager
+  [current]
+  (let [current-index (first (keep-indexed #(when (= (:number %2) (:number current)) %1) lesson/chapters))
+        previous (when (pos? current-index) (nth lesson/chapters (dec current-index)))
+        next (when (< (inc current-index) (count lesson/chapters)) (nth lesson/chapters (inc current-index)))]
+    [:nav {:aria-label "Chapter navigation" :style {:display "flex" :align-items "center" :justify-content "center" :gap "1rem" :margin-top "3rem"}}
+     [:button {:style (merge-style (:primary styles) (when-not previous {:background "#334155" :color "#94a3b8" :cursor "not-allowed"}))
+               :aria-label "Previous chapter"
+               :disabled (nil? previous)
+               :on-click #(rf/dispatch [:select-chapter (:number previous)])}
+      "←"]
+     [:span {:style {:min-width "10rem" :text-align "center" :color "#cbd5e1" :font-weight 700}}
+      (str "Chapter " (:number current) " of " (count lesson/chapters))]
+     [:button {:style (merge-style (:primary styles) (when-not next {:background "#334155" :color "#94a3b8" :cursor "not-allowed"}))
+               :aria-label "Next chapter"
+               :disabled (nil? next)
+               :on-click #(rf/dispatch [:select-chapter (:number next)])}
+      "→"]]))
+
+
+(defn go-mission-scene
+  [step]
+  (let [phase (case step
+                0 {:line "The go process is ready to take a profile." :status "ready" :color "#c4b5fd"}
+                1 {:line "`<!` has no value, so this go process parks." :status "parked at <!" :color "#fcd34d"}
+                2 {:line "The runtime is free to run another small task." :status "parked · runtime free" :color "#6ee7b7"}
+                3 {:line "A profile arrives; the go process resumes at the same line." :status "resumed" :color "#67e8f9"}
+                {:line "The prepared view moves to the next channel with `>!`." :status "handoff complete" :color "#6ee7b7"})
+        token (cond
+                (< step 3) {:left "44%" :opacity 0 :label "profile"}
+                (= step 3) {:left "10%" :opacity 1 :label "profile"}
+                :else {:left "75%" :opacity 1 :label "view"})]
+    [:div {:style {:margin "2rem 0 1rem"}}
+     [:div {:aria-live "polite" :style {:position "relative" :height "12rem" :overflow "hidden" :border "1px solid #334155" :border-radius "1rem" :background "linear-gradient(120deg, #0b1220, #172033)"}}
+      [:div {:style {:display "grid" :grid-template-columns "minmax(0, 1fr) minmax(0, .85fr) minmax(0, 1fr)" :align-items "center" :gap ".5rem" :padding "1.25rem .75rem 0"}}
+       [:div {:style {:min-width 0 :padding ".8rem" :border "1px solid" :border-color (:color phase) :border-radius ".75rem" :background "#312e81" :transition "border-color .35s ease, transform .35s ease" :transform (if (= step 1) "translateY(.45rem)" "translateY(0)")}}
+        [:strong "go process"] [:br] [:span {:style {:font-size ".8rem" :color (:color phase)}} (:status phase)]]
+       [:div {:style {:min-width 0 :padding ".65rem .35rem" :border "1px dashed #67e8f9" :border-radius "999px" :color "#67e8f9" :font-weight 700 :font-size ".85rem" :text-align "center" :overflow-wrap "anywhere"}}
+        "profile-ch"]
+       [:div {:style {:min-width 0 :padding ".8rem" :border "1px solid #818cf8" :border-radius ".75rem" :background "#312e81"}}
+        [:strong "view-ch"] [:br] [:span {:style {:font-size ".8rem" :color "#c4b5fd"}} "next process"]]]
+      [:div {:style {:position "absolute" :top "5.8rem" :left (:left token) :opacity (:opacity token) :padding ".35rem .65rem" :border-radius "999px" :background "#67e8f9" :color "#082f49" :font-weight 800 :transition "left .65s cubic-bezier(.2,.8,.2,1), opacity .25s ease"}}
+       (:label token)]
+      [:div {:style {:position "absolute" :right "1rem" :bottom "1rem" :left "1rem" :display "flex" :align-items "center" :justify-content "space-between" :padding ".65rem .8rem" :border-radius ".65rem" :background "#052e2b" :color "#99f6e4"}}
+       [:span {:style {:font-weight 700}} "Runtime lane"]
+       [:span {:style {:transition "opacity .3s ease"}} (if (= step 2) "✓ handling another event" "available for other work")]]]
+     [:p {:style {:margin "1rem 0 0" :color (:color phase) :font-weight 700}} (:line phase)]
+     [:p {:style {:margin ".35rem 0 0" :color "#94a3b8" :font-size ".9rem"}} "The movement is not a thread hopping around. It is the go process pausing at a channel operation and later continuing from that point."]]))
+
+
+(defn mission-scene
+  [chapter step]
+  (if (= "02" (:number chapter))
+    [go-mission-scene step]
+    [:div {:style (:scene styles)} [:div {:style (:process styles)} "Producer"] [:div {:style (:channel styles)} (if (>= step 2) "42" "…")] [:div {:style (:process styles)} "Consumer"]]))
+
+
 (defn app
   []
   (let [chapter @(rf/subscribe [:chapter])
         step @(rf/subscribe [:step])
         answer @(rf/subscribe [:answer])
         attempts @(rf/subscribe [:attempts])
-        complete? (lesson/complete? {:step step})]
+        complete? (lesson/complete? {:chapter chapter :step step})]
     [:main {:style (:app styles)}
+     [chapter-navigation chapter]
      [:section {:style (:hero styles)} [:p {:style (:eyebrow styles)} (str "CORE.ASYNC // CHAPTER " (:number chapter))] [:h1 {:style (:title styles)} (:title chapter)] [:p {:style (:copy styles)} (:concept chapter)]]
      [chapter-introduction chapter]
+     (when-let [code (:code chapter)] [:section {:style (:card styles)} [:p {:style (:eyebrow styles)} "READ THE PAUSE"] [:pre {:style (:code styles)} code] [:p {:style (merge-style (:copy styles) {:margin-bottom 0 :color "#fcd34d"})} (:caution chapter)]])
      [:section {:style (:panel styles)}
-      [:div {:style (:card styles)} [:p {:style (:eyebrow styles)} "MISSION"] [:h2 "Make two processes meet"] [:p {:style (:copy styles)} (:goal chapter)]
-       [:div {:style (:scene styles)} [:div {:style (:process styles)} "Producer"] [:div {:style (:channel styles)} (if (>= step 2) "42" "…")] [:div {:style (:process styles)} "Consumer"]]
+      [:div {:style (:card styles)} [:p {:style (:eyebrow styles)} "MISSION"] [:h2 (if (= "02" (:number chapter)) "Park, keep working, then resume" "Make two processes meet")] [:p {:style (:copy styles)} (:goal chapter)]
+       [mission-scene chapter step]
        [:button {:style (merge-style (:primary styles) (when complete? {:background "#a7f3d0" :cursor "default"})) :on-click #(rf/dispatch [:advance]) :disabled complete?} (if complete? "Trace complete" "Advance simulation →")]
        [:button {:style (:text-button styles) :on-click #(rf/dispatch [:reset-lesson])} "Reset chapter"]]
-      [:aside {:style (:card styles)} [:p {:style (:eyebrow styles)} "TRACE"] [:h2 "What happens next?"] [:ol {:style (:timeline styles)} (for [event lesson/events] ^{:key (:at event)} [event-card event step])]]]
+      [:aside {:style (:card styles)} [:p {:style (:eyebrow styles)} "TRACE"] [:h2 "What happens next?"] [:ol {:style (:timeline styles)} (for [event (lesson/events-for chapter)] ^{:key (:at event)} [event-card event step])]]]
      (when complete? [knowledge-check chapter answer attempts])
-     [:footer {:style (:footer styles)} "Chapter 1 of Core Async Quest · Next: buffered channels and back-pressure."]]))
+     [chapter-pager chapter]
+     [:footer {:style (:footer styles)} (str "Chapter " (:number chapter) " of Core Async Quest · " (:next chapter))]]))
 
 
 (defn mount!
