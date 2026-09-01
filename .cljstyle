@@ -1,0 +1,5 @@
+{:files
+ {:ignore
+  #{#"resources/public/js/compiled.*"
+    "node_modules"
+    "target"}}}
