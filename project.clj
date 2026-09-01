@@ -1,6 +1,6 @@
-(defproject core-async-quest "0.1.0"
+(defproject org.clojars.punit-naik/core-async-quest "0.2.0"
   :description "A visual, game-like Clojure core.async learning lab"
-  :url "https://github.com/punit-naik/core-async-quest"
+  :url "https://punit-naik.github.io/core-async-quest/"
   :license {:name "EPL-2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.12.2"]
@@ -40,4 +40,14 @@
                            "@xyflow/react" "12.11.5"
                            "motion" "13.1.1"
                            "canvas-confetti" "1.9.3"}
+                :install-deps true}}
+    {:id "test"
+     :source-paths ["src" "test/cljs"]
+     :compiler {:main core-async-quest.test-runner
+                :output-to "resources/public/js/compiled/test.js"
+                :output-dir "resources/public/js/compiled/out-test"
+                :asset-path "js/compiled/out-test"
+                :optimizations :none
+                :npm-deps {"react" "18.3.1"
+                           "react-dom" "18.3.1"}
                 :install-deps true}}]})

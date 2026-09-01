@@ -11,10 +11,14 @@ pom.xml.asc
 .lein-plugins
 .lein-repl-history
 package.*.json
+package.json
+package-lock.json
+node_modules/
+resources/public/js/compiled/
 
 # IDE/Editor files
 .lsp/
-.clj-kondo/
+.clj-kondo/.cache/
 .ccls-cache/
 .rebel_readline_history
 .nrepl-port
